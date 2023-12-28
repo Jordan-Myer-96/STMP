@@ -53,7 +53,7 @@ async function getAPIDefaults() {
     }
 }
 
-async function getAIResponse(TCAPIkey, STBasicAuthCredentials, engineMode, userObj, userPrompt, liveConfig) {
+async function getAIResponse(apiInfo, STBasicAuthCredentials, engineMode, userObj, userPrompt, liveConfig) {
     try {
         let APICallParams
         if (engineMode === 'TC') {
@@ -104,7 +104,7 @@ async function getAIResponse(TCAPIkey, STBasicAuthCredentials, engineMode, userO
             AIResponse = hordeResponse;
         }
         else {
-            AIResponse = trimIncompleteSentences(await requestToTC(TCAPIkey, finalAPICallParams))
+            AIResponse = trimIncompleteSentences(await requestToTC(apiInfo.endpoint, apiInfo.key, finalAPICallParams))
         }
 
         await db.upsertChar(charName, charName, userObj.color);
@@ -397,11 +397,11 @@ async function requestToHorde(STBasicAuthCredentials, stringToSend) {
     };
 }
 
-async function requestToTC(TCAPIkey, APICallParamsAndPrompt) {
+async function requestToTC(endpoint, TCAPIkey, APICallParamsAndPrompt) {
     //message needs to be the ENTIRE API call, including params and chat history..
     try {
         console.log('Sending Text Completion API request..');
-        const url = TCURL + TCGenEndpoint;
+        const url = endpoint
 
         const headers = {
             'Content-Type': 'application/json',
