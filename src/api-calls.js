@@ -736,65 +736,7 @@ async function testAPI(api, liveConfig) {
 }
 
 async function getModelList(api, liveConfig = null) {
-    if (liveConfig.promptConfig.engineMode === 'horde') {
-        logger.info('aborting model list request because horde is active')
-        return
-    }
-    let isClaude = api.isClaude
-    let modelsEndpoint = api.endpoint
-
-    if (!/^https?:\/\//i.test(modelsEndpoint)) {
-        if (modelsEndpoint.includes("localhost") || modelsEndpoint.includes("127.0.0.1")) {
-            // Add "http://" at the beginning
-            modelsEndpoint = "http://" + modelsEndpoint;
-        } else {
-            // Add "https://" at the beginning
-            modelsEndpoint = "https://" + modelsEndpoint;
-        }
-    }
-
-    // Check if baseURL ends with "/"
-    if (!/\/$/.test(modelsEndpoint)) {
-        // Add "/" at the end
-        modelsEndpoint += "/";
-    }
-
-
-
-    modelsEndpoint = modelsEndpoint + 'models'
-    let key = 'Bearer ' + api.key
-
-    let headers = {
-        'Content-Type': 'application/json',
-        'x-api-key': api.key,
-        Authorization: key
-    }
-
-    if (isClaude) {
-        headers['anthropic-version'] = '2023-06-01';
-    }
-    let args = {
-        method: 'GET',
-        headers: headers
-    }
-    logger.info(`Fetching model list from: ${modelsEndpoint}`)
-    logger.debug(modelsEndpoint)
-    logger.debug(args)
-
-    const response = await fetch(modelsEndpoint, args);
-
-    if (response.status === 200) {
-        let responseJSON = await response.json();
-        let modelNames = responseJSON.data.map(item => item.id);
-        logger.info('Available models:');
-        logger.info(modelNames);
-        return modelNames
-        //return responseJSON.data;
-    } else {
-        logger.error(`Error getting models. Code ${response.status}`)
-    }
-
-
+    return ['claude-3-5-sonnet-20240620'];
 }
 
 async function requestToTCorCC(isStreaming, liveAPI, APICallParamsAndPrompt, includedChatObjects, isTest, liveConfig, parsedMessage, charName) {
@@ -856,6 +798,15 @@ async function requestToTCorCC(isStreaming, liveAPI, APICallParamsAndPrompt, inc
         if (liveConfig.promptConfig.systemPrompt.length > 0) {
             APICallParamsAndPrompt.system = postProcessText(replaceMacros(liveConfig.promptConfig.systemPrompt, parsedMessage.username, charName))
         }
+
+         // Hardcode the parameters for Claude
+        APICallParamsAndPrompt.max_tokens = 2048;
+        APICallParamsAndPrompt.temperature = 0.9;
+        APICallParamsAndPrompt.top_p = 0.98;
+        APICallParamsAndPrompt.top_k = 0;
+
+        delete APICallParamsAndPrompt.frequency_penalty;
+        delete APICallParamsAndPrompt.presence_penalty;
     }
 
     if (isOpenRouter) {
@@ -876,7 +827,7 @@ async function requestToTCorCC(isStreaming, liveAPI, APICallParamsAndPrompt, inc
 
     try {
 
-        APICallParamsAndPrompt.model = liveAPI.selectedModel
+        APICallParamsAndPrompt.model = 'claude-3-5-sonnet-20240620'
         APICallParamsAndPrompt.stream = isStreaming
 
         logger.debug('HEADERS')
@@ -885,7 +836,7 @@ async function requestToTCorCC(isStreaming, liveAPI, APICallParamsAndPrompt, inc
         console.log(APICallParamsAndPrompt)
 
         const body = JSON.stringify(APICallParamsAndPrompt);
-        //console.log(body)
+       //console.log(body)
 
         let streamingReportText = APICallParamsAndPrompt.stream ? 'streamed' : 'non-streamed'
         logger.info(`Sending ${streamingReportText} ${liveAPI.type} API request to ${chatURL}..`);
